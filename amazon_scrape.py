@@ -1,5 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
+import psycopg2
+import json
 
 url = """http://books.toscrape.com"""
 
@@ -19,6 +21,8 @@ listed = categories.find_all("li")
 
 book_dictionary = {}
 
+
+#The code below obtained the books in all categories and saved them in the dictionary
 for item in listed:
 
     listed = item.find("a")
@@ -49,28 +53,46 @@ for item in listed:
         book_dictionary[listed_category] = item_property
 
 
-print(book_dictionary)
+# print(book_dictionary)
+
+#storing the dictionary data in a postgre database
+
+conn = psycopg2.connect(
+    host="localhost",
+    port="5432",
+    database="Bookscrape",
+    user="postgres",
+    password="#Tolexy5038"
+)
+
+json_data = json.dumps(book_dictionary)
 
 
 
+#the code below created a table in the database
+# cur = conn.cursor()
 
+# create_table_query = """
+# CREATE TABLE Bookinfo (
+#     Category VARCHAR(50) PRIMARY KEY,
+#     Bookname VARCHAR(50),
+#     Bookprice VARCHAR(50)
+# )
+# """
+# cur.execute(create_table_query)
+# cur.close()
 
-# book_url = "catalogue/category/books/travel_2/index.html"
+#the code below insert the dic in the table
+cur = conn.cursor()
 
+create_table_query = """
+CREATE TABLE Bookinfos (
+    cardata JSONB
+)
+"""
 
-# book_page = requests.get("http://books.toscrape.com/"+book_url)
+cur.execute(create_table_query)
 
-# book_html_content = book_page.text
-# book_soup = BeautifulSoup(book_html_content, 'html.parser')
-
-# travel_title = book_soup.find("title").text
-# product_list = book_soup.find_all(class_ = "product_pod")
-
-# for book_item in product_list:
-#     book_title = book_item.find("h3").text
-#     book_price = book_item.find(class_ = "price_color").text[1:]
-    
-
-#     print(book_price)
-
-
+cur.execute("INSERT INTO Bookinfos (cardata) VALUES (%s)", (json_data,))
+conn.commit()
+cur.close()
